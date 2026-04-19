@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#667eea">
+<title>安卓Chrome全能力测试实验室</title>
+
+<!-- 内联PWA Manifest，确保Chrome识别为可安装应用 -->
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQ2hyb21l5byA5aeL5oqA5ben5o6o6Im5Iiwic2hvcnRfbmFtZSI6IkNocm9tZeiJuiIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjNjY3ZWVhIiwidGhlbWVfY29sb3IiOiIjNjY3ZWVhIn0=">
+
+<style>
+:root{--primary:#667eea;--success:#48bb78;--danger:#f56565;--warn:#ed8936;--info:#4299e1;--bg:#f7fafc}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:#2d3748;line-height:1.6;padding-bottom:40px}
+
+.header{background:linear-gradient(135deg,var(--primary) 0%,#764ba2 100%);color:#fff;padding:20px 16px;position:sticky;top:0;z-index:100;box-shadow:0 4px 6px rgba(0,0,0,0.1)}
+.header h1{font-size:20px;margin-bottom:4px}
+.header p{font-size:12px;opacity:.9}
+
+/* 关键警告 */
+.big-alert{margin:12px 16px;padding:16px;border-radius:12px;font-size:14px;line-height:1.6}
+.big-alert strong{display:block;margin-bottom:6px;font-size:15px}
+.alert-critical{background:#fff5f5;color:#742a2a;border:1px solid #feb2b2}
+.alert-success{background:#f0fff4;color:#22543d;border:1px solid #9ae6b4}
+
+.container{max-width:680px;margin:0 auto;padding:0 16px}
+
+.card{background:#fff;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid #e2e8f0}
+.card-title{font-size:16px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.card-desc{font-size:12px;color:#718096;margin-bottom:12px}
+
+.badge{padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;background:#edf2f7;color:#4a5568}
+.badge-ok{background:var(--success);color:#fff}
+.badge-fail{background:var(--danger);color:#fff}
+.badge-warn{background:#feebc8;color:#744210}
+
+.btn{width:100%;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn:active{transform:scale(0.98);opacity:.9}
+.btn-primary{background:linear-gradient(135deg,var(--primary) 0%,#764ba2 100%);color:#fff}
+.btn-secondary{background:#edf2f7;color:#4a5568}
+.btn-success{background:var(--success);color:#fff}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-info{background:var(--info);color:#fff}
+.btn-sm{padding:8px;font-size:13px;margin-top:6px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+.info-box{background:#f7fafc;border-radius:8px;padding:12px;font-size:13px;font-family:"Courier New",monospace;color:#4a5568;margin-top:10px;word-break:break-word;white-space:pre-wrap;max-height:220px;overflow-y:auto;line-height:1.5}
+.info-box a{color:var(--primary)}
+
+.code-box{background:#2d3748;color:#e2e8f0;padding:12px;border-radius:8px;font-family:monospace;font-size:13px;margin:8px 0;overflow-x:auto}
+
+.preview-box{width:100%;min-height:160px;background:#f7fafc;border-radius:10px;display:flex;align-items:center;justify-content:center;margin:10px 0;overflow:hidden;position:relative;border:2px dashed #cbd5e0}
+.preview-box video,.preview-box img{width:100%;height:100%;object-fit:cover;display:block}
+.preview-text{color:#a0aec0;font-size:14px;text-align:center;padding:20px}
+.delete-btn{position:absolute;top:8px;right:8px;width:32px;height:32px;background:rgba(245,101,101,.95);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;z-index:10}
+
+.audio-wave{display:flex;align-items:center;justify-content:center;height:50px;gap:3px;margin:10px 0}
+.bar{width:4px;background:linear-gradient(to top,var(--primary),#764ba2);border-radius:2px;animation:wave 1s ease-in-out infinite}
+.bar:nth-child(2){animation-delay:.1s}
+.bar:nth-child(3){animation-delay:.2s}
+.bar:nth-child(4){animation-delay:.3s}
+.bar:nth-child(5){animation-delay:.4s}
+@keyframes wave{0%,100%{height:10px}50%{height:45px}}
+.audio-wave.stopped .bar{animation:none;height:10px}
+
+.article-box{background:#fffaf0;border-left:4px solid var(--warn);padding:14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:15px;line-height:1.8;color:#744210}
+
+select,input[type="range"]{width:100%;padding:10px;border-radius:8px;border:1px solid #cbd5e0;margin:6px 0;font-size:14px;background:#fff}
+.range-label{display:flex;justify-content:space-between;font-size:12px;color:#718096}
+
+.hidden{display:none!important}
+.mt-2{margin-top:8px}
+input[type="file"]{display:none}
+</style>
+
+<!-- 内联Service Worker -->
+<script>
+if('serviceWorker' in navigator){
+    const sw = `self.addEventListener('install',e=>{e.waitUntil(caches.open('test-v1').then(c=>c.addAll(['./'])));self.skipWaiting()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()))`;
+    navigator.serviceWorker.register('data:application/javascript;base64,'+btoa(sw)).catch(()=>{});
+}
+</script>
+</head>
+<body>
+
+<div class="header">
+    <h1>🧪 安卓Chrome全能力测试</h1>
+    <p>先解决协议限制，再测试功能</p>
+</div>
+
+<!-- 关键警告：file://协议 -->
+<div id="protoAlert" class="big-alert alert-critical">
+    <strong>⚠️ 当前协议限制：file://</strong>
+    你正在通过 <code>file://</code> 打开此文件。<br>
+    Chrome会<b>假装"User denied"</b>来阻止摄像头视频流、麦克风、精确定位等API。<br>
+    <b>解决办法（二选一）：</b>
+</div>
+
+<!-- 方案A：局域网IP（最推荐） -->
+<div class="card" style="border:2px solid var(--primary)">
+    <div class="card-title">
+        🚀 方案A：通过局域网IP访问（推荐）
+        <span class="badge badge-info">最简单</span>
+    </div>
+    <div class="card-desc">部署到局域网，手机用IP访问，立即解除所有限制</div>
+    
+    <div style="font-size:14px;margin-bottom:10px"><b>如果你用电脑：</b>在此文件所在目录打开终端：</div>
+    <div class="code-box">python3 -m http.server 8080</div>
+    
+    <div style="font-size:14px;margin:10px 0"><b>如果你只有手机：</b>安装Termux，执行：</div>
+    <div class="code-box">pkg install python -y && python -m http.server 8080</div>
+    
+    <div style="font-size:14px;margin:10px 0">
+        然后用手机Chrome访问：<br>
+        <code style="font-size:16px;color:var(--primary);font-weight:700">http://你电脑/手机的IP:8080</code>
+    </div>
+    
+    <button class="btn btn-success" onclick="copyCmd()">📋 复制命令</button>
+    <button class="btn btn-primary" onclick="location.reload()">🔄 已部署？点击刷新检测</button>
+</div>
+
+<!-- 方案B：PWA安装真实路径（修正版） -->
+<div class="card">
+    <div class="card-title">
+        📲 方案B：添加到主屏幕（PWA）
+        <span class="badge badge-warn">入口较深</span>
+    </div>
+    <div class="card-desc">必须是方案A成功后，菜单里才会出现选项。file://下不会出现。</div>
+    
+    <div class="info-box" style="background:#fffaf0">
+<b>安卓Chrome真实操作路径：</b>
+
+1️⃣ <b>地址栏右侧查找图标</b>
+如果符合PWA标准，地址栏右侧（书签星号旁）会出现 ➕ 或 📥，直接点击。
+
+2️⃣ <b>如果没有图标，点击 ⋮ 菜单</b>
+向下滑动，寻找：
+• "安装 [应用名称]"
+• "添加到主屏幕"
+• "安装应用"
+
+3️⃣ <b>如果菜单里没有</b>
+说明当前是 file:// 协议。请先执行<b>方案A</b>，用IP访问后才会出现。
+
+4️⃣ <b>国产手机特殊路径</b>
+• <b>小米/红米：</b>菜单 → 工具箱 → 添加到桌面
+• <b>华为：</b>部分机型阉割此功能，建议直接用方案A
+• <b>OPPO/realme：</b>菜单 → 添加到桌面
+• <b>vivo/iQOO：</b>菜单 → 加入桌面 / 工具箱
+
+5️⃣ <b>安装后从桌面图标启动</b>
+必须从桌面新图标进入，不要从历史记录进。
+    </div>
+    
+    <button class="btn btn-secondary" onclick="checkInstallable()">检测当前是否可安装</button>
+    <div id="installStatus" class="info-box hidden"></div>
+</div>
+
+<!-- 诊断卡片 -->
+<div class="card">
+    <div class="card-title">🔍 实时环境诊断 <span class="badge" id="envBadge">检测中</span></div>
+    <div id="envInfo" class="info-box">分析中...</div>
+    <button class="btn btn-primary btn-sm" onclick="deepCheck()">重新检测权限状态</button>
+</div>
+
+<div class="container">
+
+<!-- 1. 拍照（总是可用） -->
+<div class="card">
+    <div class="card-title">📷 系统相机拍照 <span class="badge badge-ok">总是可用</span></div>
+    <input type="file" id="camInput" accept="image/*" capture="environment">
+    <div class="preview-box" id="photoBox"><div class="preview-text">点击调用系统相机（不受协议限制）</div></div>
+    <div class="grid-2">
+        <button class="btn btn-primary" onclick="document.getElementById('camInput').click()">📸 拍照</button>
+        <button class="btn btn-secondary hidden" id="delBtn" onclick="resetPhoto()">🗑️ 删除</button>
+    </div>
+</div>
+
+<!-- 2. 麦克风录音 -->
+<div class="card">
+    <div class="card-title">🎙️ 麦克风录音+播放 <span class="badge" id="micBadge">需局域网IP</span></div>
+    <div class="audio-wave stopped" id="waveBox"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+    <div class="grid-3">
+        <button class="btn btn-danger" id="btnRec" onclick="startRec()">🔴 录音</button>
+        <button class="btn btn-secondary" id="btnStop" onclick="stopRec()" disabled>⏹️ 停止</button>
+        <button class="btn btn-success" id="btnPlay" onclick="playRec()" disabled>▶️ 播放</button>
+    </div>
+    <div id="recInfo" class="info-box hidden"></div>
+    <div id="recErr" class="info-box hidden" style="color:var(--danger)"></div>
+</div>
+
+<!-- 3. 视频流 -->
+<div class="card">
+    <div class="card-title">🎥 实时摄像头视频流 <span class="badge" id="camBadge">需局域网IP</span></div>
+    <div class="preview-box hidden" id="vidBox" style="background:#000;min-height:220px"><video id="vid" autoplay playsinline muted></video></div>
+    <div class="grid-2">
+        <button class="btn btn-primary" onclick="startCam()">开启摄像头</button>
+        <button class="btn btn-danger" onclick="stopCam()">关闭</button>
+    </div>
+    <div id="camErr" class="info-box hidden" style="color:var(--danger);font-size:13px"></div>
+</div>
+
+<!-- 4. 语音转文字 -->
+<div class="card">
+    <div class="card-title">🗣️ 语音实时转文字 <span class="badge" id="asrBadge">需联网</span></div>
+    <button class="btn btn-primary" id="btnASR" 
+        onmousedown="startASR()" ontouchstart="startASR()" 
+        onmouseup="stopASR()" ontouchend="stopASR()"
+        style="user-select:none;-webkit-user-select:none">🎤 按住说话（支持中文/英文）</button>
+    <select id="asrLang" style="margin-top:8px">
+        <option value="zh-CN">🇨🇳 中文普通话</option>
+        <option value="en-US">🇺🇸 英语（美式）</option>
+        <option value="en-GB">🇬🇧 英语（英式）</option>
+    </select>
+    <div id="asrResult" class="info-box hidden" style="background:#f0fff4;color:#22543d;border:1px solid #9ae6b4;margin-top:10px"></div>
+    <div id="asrErr" class="info-box hidden" style="color:var(--danger);margin-top:10px"></div>
+</div>
+
+<!-- 5. TTS英文朗读 -->
+<div class="card">
+    <div class="card-title">🔊 在线语音合成（英式/美式） <span class="badge" id="ttsBadge">就绪</span></div>
+    <div class="article-box">
+        Technology has fundamentally transformed the way we communicate and interact with the world around us. From smartphones to artificial intelligence, these innovations have reshaped our daily routines in ways we could never have imagined decades ago. The rapid pace of digital advancement continues to accelerate, creating both unprecedented opportunities and complex ethical challenges for modern society. As we stand at the crossroads of this technological revolution, it becomes increasingly important to cultivate digital literacy and critical thinking skills. Only by understanding these powerful tools can we harness their potential while mitigating the risks they pose to our privacy and social fabric.
+    </div>
+    <div style="margin:10px 0">
+        <div class="range-label"><span>选择发音（优先选Google云端语音）</span></div>
+        <select id="voiceSel"><option value="">-- 先点击加载语音 --</option></select>
+        <button class="btn btn-secondary btn-sm" onclick="loadVoices()">🔄 加载可用语音</button>
+    </div>
+    <div style="margin:10px 0">
+        <div class="range-label"><span>语速</span><span id="rateDisp">1.0</span></div>
+        <input type="range" min="0.5" max="1.5" step="0.1" value="1.0" id="rateIn" oninput="document.getElementById('rateDisp').textContent=this.value">
+    </div>
+    <div class="grid-2">
+        <button class="btn btn-primary" onclick="speak('sentence')">▶️ 逐句朗读</button>
+        <button class="btn btn-success" onclick="speak('full')">▶️ 全文连贯</button>
+    </div>
+    <button class="btn btn-danger btn-sm" onclick="window.speechSynthesis.cancel()">⏹️ 停止</button>
+    <div id="ttsStatus" class="info-box hidden"></div>
+</div>
+
+<!-- 6. 地理位置 -->
+<div class="card">
+    <div class="card-title">📍 地理位置 <span class="badge" id="geoBadge">等待中</span></div>
+    <div class="grid-2">
+        <button class="btn btn-primary" onclick="getGPS()">🛰️ GPS定位</button>
+        <button class="btn btn-secondary" onclick="getIPLoc()">🌐 IP定位（降级）</button>
+    </div>
+    <button class="btn btn-info btn-sm" onclick="watchGPS()">👁️ 持续追踪</button>
+    <div id="geoInfo" class="info-box hidden"></div>
+    <div id="geoErr" class="info-box hidden" style="color:var(--danger)"></div>
+</div>
+
+<!-- 7. 扫码 -->
+<div class="card">
+    <div class="card-title">📡 二维码识别 <span class="badge badge-ok">相册可用</span></div>
+    <input type="file" id="qrIn" accept="image/*" onchange="decodeQR(this)">
+    <div class="preview-box hidden" id="qrPreview"></div>
+    <button class="btn btn-secondary" onclick="document.getElementById('qrIn').click()">🖼️ 从相册选图解码</button>
+    <div id="qrRes" class="info-box hidden" style="background:#f0fff4;color:#22543d;border:1px solid #9ae6b4;margin-top:8px"></div>
+</div>
+
+</div>
+
+<script>
+function init(){
+    const isSecure = window.isSecureContext;
+    const isFile = location.protocol === 'file:';
+    const alert = document.getElementById('protoAlert');
+    
+    if(isSecure){
+        alert.className = 'big-alert alert-success';
+        alert.innerHTML = '<strong>✅ 当前为安全上下文</strong>视频流、麦克风、精确定位应该可以正常工作。如果仍失败，请检查系统权限设置。';
+    }
+    deepCheck();
+}
+
+async function deepCheck(){
+    const box = document.getElementById('envInfo');
+    const badge = document.getElementById('envBadge');
+    const lines = [];
+    
+    lines.push(`协议: ${location.protocol}`);
+    lines.push(`安全上下文: ${window.isSecureContext ? '✅ 是' : '❌ 否'}`);
+    lines.push(`主机: ${location.hostname || 'N/A'}`);
+    lines.push(`UA: ${navigator.userAgent.substring(0,70)}...`);
+    
+    if('permissions' in navigator){
+        for(const name of ['camera','microphone','geolocation']){
+            try{
+                const s = await navigator.permissions.query({name});
+                lines.push(`${name}: ${s.state.toUpperCase()}`);
+            }catch(e){ lines.push(`${name}: 查询失败`); }
+        }
+    }
+    
+    lines.push(`语音合成: ${'speechSynthesis' in window ? '✅' : '❌'}`);
+    lines.push(`语音识别: ${!!(window.SpeechRecognition||window.webkitSpeechRecognition) ? '✅' : '❌'}`);
+    
+    box.textContent = lines.join('\n');
+    badge.className = 'badge badge-ok';
+    badge.textContent = '已检测';
+}
+
+function copyCmd(){
+    const cmd = 'python3 -m http.server 8080';
+    if(navigator.clipboard){
+        navigator.clipboard.writeText(cmd).then(()=>alert('已复制，请在文件所在目录执行'));
+    }else{
+        prompt('请复制：', cmd);
+    }
+}
+
+function checkInstallable(){
+    const box = document.getElementById('installStatus');
+    box.classList.remove('hidden');
+    let info = [];
+    info.push('display-mode standalone: ' + (window.matchMedia('(display-mode: standalone)').matches ? '是（已安装）' : '否'));
+    if(!window.isSecureContext){
+        info.push('\n⚠️ 非安全上下文：Chrome不会显示安装按钮');
+        info.push('请先通过局域网IP访问');
+    }else{
+        info.push('\n✅ 安全上下文已就绪');
+        info.push('Chrome菜单中应出现"安装"或"添加到主屏幕"');
+    }
+    box.textContent = info.join('\n');
+}
+
+// 拍照
+document.getElementById('camInput').addEventListener('change', function(e){
+    const f = e.target.files[0]; if(!f) return;
+    const url = URL.createObjectURL(f);
+    document.getElementById('photoBox').innerHTML = `<img src="${url}" style="max-height:280px;object-fit:contain;"><div class="delete-btn" onclick="resetPhoto()">×</div>`;
+    document.getElementById('delBtn').classList.remove('hidden');
+});
+function resetPhoto(){
+    document.getElementById('camInput').value = '';
+    document.getElementById('photoBox').innerHTML = '<div class="preview-text">点击调用系统相机</div>';
+    document.getElementById('delBtn').classList.add('hidden');
+}
+
+// 录音
+let recMedia = null, audioChunks = [], audioBlob = null;
+async function startRec(){
+    const err = document.getElementById('recErr');
+    err.classList.add('hidden');
+    try{
+        const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+        recMedia = new MediaRecorder(stream);
+        audioChunks = [];
+        recMedia.ondataavailable = e => { if(e.data.size) audioChunks.push(e.data); };
+        recMedia.onstop = () => {
+            audioBlob = new Blob(audioChunks, {type:'audio/webm'});
+            document.getElementById('recInfo').textContent = `✅ 录音完成 ${(audioBlob.size/1024).toFixed(1)}KB`;
+            document.getElementById('recInfo').classList.remove('hidden');
+            document.getElementById('waveBox').classList.add('stopped');
+            document.getElementById('btnPlay').disabled = false;
+            stream.getTracks().forEach(t=>t.stop());
+        };
+        recMedia.start();
+        document.getElementById('waveBox').classList.remove('stopped');
+        document.getElementById('btnRec').disabled = true;
+        document.getElementById('btnStop').disabled = false;
+        document.getElementById('btnPlay').disabled = true;
+    }catch(e){
+        document.getElementById('waveBox').classList.add('stopped');
+        let msg = e.name + ': ' + e.message;
+        if(e.name === 'NotAllowedError'){
+            msg += '\n\n原因：你通过 file:// 打开，Chrome伪装拒绝。\n解决：按顶部"方案A"部署到局域网。';
+        }
+        err.textContent = msg; err.classList.remove('hidden');
+    }
+}
+function stopRec(){
+    if(recMedia && recMedia.state !== 'inactive'){ recMedia.stop(); document.getElementById('btnRec').disabled = false; document.getElementById('btnStop').disabled = true; }
+}
+function playRec(){
+    if(!audioBlob) return;
+    new Audio(URL.createObjectURL(audioBlob)).play();
+}
+
+// 视频流
+let camStream = null;
+async function startCam(){
+    const err = document.getElementById('camErr');
+    err.classList.add('hidden');
+    if(!window.isSecureContext){
+        err.innerHTML = '❌ 非安全上下文（file://）<br>Chrome会伪装成"User denied"拒绝摄像头。<br><b>必须</b>通过 http://局域网IP:端口 访问。';
+        err.classList.remove('hidden'); return;
+    }
+    try{
+        const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+        camStream = s;
+        document.getElementById('vid').srcObject = s;
+        document.getElementById('vidBox').classList.remove('hidden');
+    }catch(e){
+        err.innerHTML = '❌ ' + e.name + ': ' + e.message + '<br>如果已用局域网IP仍失败，检查系统设置→应用→Chrome→相机权限';
+        err.classList.remove('hidden');
+    }
+}
+function stopCam(){
+    if(camStream){ camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+    document.getElementById('vidBox').classList.add('hidden');
+}
+
+// 语音转文字
+let recog = null;
+function startASR(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ document.getElementById('asrErr').textContent='不支持'; document.getElementById('asrErr').classList.remove('hidden'); return; }
+    recog = new SR(); recog.continuous = false; recog.interimResults = true;
+    recog.lang = document.getElementById('asrLang').value;
+    recog.onstart = () => { document.getElementById('asrBadge').className='badge badge-ok'; document.getElementById('asrBadge').textContent='聆听中'; document.getElementById('asrResult').classList.add('hidden'); document.getElementById('asrErr').classList.add('hidden'); };
+    recog.onresult = (e) => {
+        let final='', interim='';
+        for(let i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) final+=e.results[i][0].transcript; else interim+=e.results[i][0].transcript; }
+        const box = document.getElementById('asrResult');
+        box.innerHTML = `<b>实时:</b> ${interim}<br><b>结果:</b> ${final}`; box.classList.remove('hidden');
+    };
+    recog.onerror = (e) => {
+        let msg = e.error; if(e.error==='not-allowed') msg = '麦克风权限被拒。如果你用file://打开，这是预期行为。请用局域网IP访问。';
+        document.getElementById('asrErr').textContent = '❌ '+msg; document.getElementById('asrErr').classList.remove('hidden');
+        document.getElementById('asrBadge').className = 'badge badge-fail';
+    };
+    recog.onend = () => { document.getElementById('asrBadge').className='badge'; document.getElementById('asrBadge').textContent='需联网'; };
+    recog.start();
+}
+function stopASR(){ if(recog) recog.stop(); }
+
+// TTS
+let ttsVoices = [];
+function loadVoices(){
+    ttsVoices = window.speechSynthesis.getVoices();
+    if(ttsVoices.length === 0){
+        window.speechSynthesis.onvoiceschanged = () => { ttsVoices = window.speechSynthesis.getVoices(); populateTTS(); };
+        window.speechSynthesis.cancel(); setTimeout(()=>{ ttsVoices = window.speechSynthesis.getVoices(); populateTTS(); }, 500);
+    }else populateTTS();
+}
+function populateTTS(){
+    const sel = document.getElementById('voiceSel'); sel.innerHTML = '<option value="">-- 选择声音 --</option>';
+    const en = ttsVoices.filter(v => v.lang && v.lang.startsWith('en'));
+    const add = (v) => { const opt = document.createElement('option'); opt.value = v.name; const flag = v.lang.includes('GB')||v.lang.includes('UK')?'🇬🇧':'🇺🇸'; const type = v.localService?'[本地]':'[云端在线]'; opt.textContent = `${flag} ${v.name} ${type}`; sel.appendChild(opt); };
+    en.filter(v=>!v.localService).forEach(add);
+    en.filter(v=>v.localService).forEach(add);
+    ttsVoices.filter(v => !v.lang || !v.lang.startsWith('en')).forEach(add);
+}
+const sentences = ["Technology has fundamentally transformed the way we communicate and interact with the world around us.","From smartphones to artificial intelligence, these innovations have reshaped our daily routines in ways we could never have imagined decades ago.","The rapid pace of digital advancement continues to accelerate, creating both unprecedented opportunities and complex ethical challenges for modern society.","As we stand at the crossroads of this technological revolution, it becomes increasingly important to cultivate digital literacy and critical thinking skills.","Only by understanding these powerful tools can we harness their potential while mitigating the risks they pose to our privacy and social fabric."];
+function speak(mode){
+    window.speechSynthesis.cancel();
+    const voiceName = document.getElementById('voiceSel').value;
+    const rate = parseFloat(document.getElementById('rateIn').value);
+    const voice = ttsVoices.find(v => v.name === voiceName) || ttsVoices.find(v => v.lang && v.lang.startsWith('en'));
+    const status = document.getElementById('ttsStatus'); status.classList.remove('hidden');
+    if(mode === 'sentence'){
+        let i = 0; function next(){
+            if(i >= sentences.length){ status.innerHTML += '<br>✅ 完成'; return; }
+            const u = new SpeechSynthesisUtterance(sentences[i]);
+            if(voice) u.voice = voice; u.lang = voice ? voice.lang : 'en-US'; u.rate = rate;
+            status.innerHTML = `🔊 第 ${i+1}/5 句<br><b>${sentences[i]}</b>`;
+            u.onend = () => { i++; setTimeout(next, 500); };
+            window.speechSynthesis.speak(u);
+        } next();
+    }else{
+        const u = new SpeechSynthesisUtterance(sentences.join(' '));
+        if(voice) u.voice = voice; u.lang = voice ? voice.lang : 'en-US'; u.rate = rate;
+        status.innerHTML = '🔊 全文朗读中...<br>声音: ' + (voice ? voice.name : '默认');
+        u.onend = () => { status.innerHTML += '<br>✅ 完成'; };
+        window.speechSynthesis.speak(u);
+    }
+}
+
+// 地理位置
+function getGPS(){
+    const box = document.getElementById('geoInfo'), err = document.getElementById('geoErr');
+    box.classList.add('hidden'); err.classList.add('hidden');
+    if(!navigator.geolocation){ err.textContent='不支持'; err.classList.remove('hidden'); return; }
+    document.getElementById('geoBadge').className = 'badge badge-warn';
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const c = pos.coords;
+            box.innerHTML = `✅ GPS定位\n纬度: ${c.latitude.toFixed(6)}\n经度: ${c.longitude.toFixed(6)}\n精度: ±${c.accuracy.toFixed(0)}m\n<a href="https://uri.amap.com/marker?position=${c.longitude},${c.latitude}" target="_blank">高德地图查看</a>`;
+            box.classList.remove('hidden'); document.getElementById('geoBadge').className = 'badge badge-ok';
+        },
+        e => { let msg = e.message; if(e.code===1) msg += '\n\n即使点了允许，file://下Chrome仍会拒绝。请用局域网IP。'; err.innerHTML = '❌ '+msg; err.classList.remove('hidden'); document.getElementById('geoBadge').className = 'badge badge-fail'; },
+        {enableHighAccuracy:true, timeout:15000}
+    );
+}
+async function getIPLoc(){
+    const box = document.getElementById('geoInfo'); box.classList.remove('hidden');
+    try{ const r = await fetch('https://ipapi.co/json/'); const d = await r.json(); box.innerHTML = `ℹ️ IP定位\n城市: ${d.city}\n地区: ${d.region}\n国家: ${d.country_name}\n经纬度: ${d.latitude}, ${d.longitude}\n<a href="https://maps.google.com/?q=${d.latitude},${d.longitude}" target="_blank">地图查看</a>`; }
+    catch(e){ box.innerHTML = '❌ IP定位失败'; }
+}
+let watchId = null;
+function watchGPS(){
+    if(watchId){ navigator.geolocation.clearWatch(watchId); watchId=null; return; }
+    watchId = navigator.geolocation.watchPosition(
+        pos => { const c = pos.coords; document.getElementById('geoInfo').innerHTML = `👁️ 追踪中\n${c.latitude.toFixed(6)}, ${c.longitude.toFixed(6)}\n精度: ${c.accuracy.toFixed(0)}m`; document.getElementById('geoInfo').classList.remove('hidden'); },
+        err => {}, {enableHighAccuracy:true}
+    );
+}
+
+// 扫码
+function decodeQR(input){
+    const f = input.files[0]; if(!f || typeof jsQR === 'undefined') return;
+    const img = new Image();
+    img.onload = () => {
+        const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img,0,0);
+        const code = jsQR(c.getContext('2d').getImageData(0,0,c.width,c.height).data, c.width, c.height);
+        const box = document.getElementById('qrRes'), prev = document.getElementById('qrPreview');
+        prev.innerHTML = `<img src="${URL.createObjectURL(f)}" style="max-height:200px;">`; prev.classList.remove('hidden');
+        if(code){ box.innerHTML = `✅ ${code.data}`; box.classList.remove('hidden'); }
+        else { box.innerHTML = '未识别到二维码'; box.classList.remove('hidden'); }
+    };
+    img.src = URL.createObjectURL(f);
+}
+
+init();
+</script>
+</body>
+</html>
