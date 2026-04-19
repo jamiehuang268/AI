@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中考英语背单词</title>
+<style>
+body{text-align:center;margin-top:40px;font-size:20px; font-family: sans-serif;padding-bottom:100px;}
+#word{font-size:48px;margin:20px 0;font-weight:bold;color:#333;}
+#mean{font-size:28px;color:#666;margin-bottom:20px;}
+.button-row{display:flex;justify-content:center;gap:15px;margin:15px 0;flex-wrap:wrap;}
+button{font-size:20px;padding:15px 30px;margin:5px; touch-action: manipulation;border:none;border-radius:8px;cursor:pointer;min-width:120px;}
+button:active{transform:scale(0.95);}
+.btn-play{background:#2196F3;color:white;}
+.btn-unfamiliar{background:#FF9800;color:white;}
+.btn-familiar{background:#4CAF50;color:white;}
+.btn-next{background:#9C27B0;color:white;}
+#status{font-size:14px;color:#666;margin-top:15px;height:20px;}
+#progress{font-size:16px;color:#888;margin-top:10px;}
+.filter-container{position:fixed;bottom:20px;left:20px;z-index:100;background:rgba(255,255,255,0.95);padding:8px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+select{font-size:18px;padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:white;}
+</style>
+</head>
+<body>
+<div id="word">Loading...</div>
+<div id="mean">请稍候</div>
+<div id="progress"></div>
+
+<div class="button-row">
+  <button class="btn-play" onclick="play()">🔊 发音</button>
+  <button class="btn-unfamiliar" onclick="markUnfamiliar()">✗ 不熟悉</button>
+</div>
+<div class="button-row">
+  <button class="btn-familiar" onclick="markFamiliar()">✓ 熟悉</button>
+  <button class="btn-next" onclick="next()">➡ 下一个</button>
+</div>
+
+<div id="status"></div>
+
+<div class="filter-container">
+  <select id="filterSelect" onchange="changeFilter(this.value)">
+    <option value="unlearned">未学习</option>
+    <option value="all">全部</option>
+    <option value="familiar">熟悉</option>
+    <option value="unfamiliar">不熟悉</option>
+  </select>
+</div>
+
+<script>
+// ==================== 词汇表 ====================
+const allWords = [
+  // A (25)
+  {en:"ability",cn:"能力，才能"},{en:"able",cn:"能够，有能力的"},{en:"about",cn:"关于，大约"},{en:"above",cn:"在...上面，高于"},{en:"abroad",cn:"到国外，在国外"},
+  {en:"absent",cn:"缺席的，不在的"},{en:"accept",cn:"接受，认可"},{en:"accident",cn:"事故，意外事件"},{en:"achieve",cn:"达到，实现，成功"},{en:"across",cn:"横过，穿过"},
+  {en:"action",cn:"行动，动作，作用"},{en:"active",cn:"积极的，活跃的"},{en:"activity",cn:"活动"},{en:"actor",cn:"男演员"},{en:"actress",cn:"女演员"},
+  {en:"actual",cn:"实际的，真实的"},{en:"add",cn:"添加，增加"},{en:"address",cn:"地址，演讲"},{en:"admire",cn:"钦佩，羡慕"},{en:"adult",cn:"成年人"},
+  {en:"advantage",cn:"优点，优势，好处"},{en:"adventure",cn:"冒险，奇遇"},{en:"advertisement",cn:"广告"},{en:"advice",cn:"建议，劝告"},{en:"advise",cn:"建议，劝告"},
+  // B (25)
+  {en:"baby",cn:"婴儿"},{en:"back",cn:"回来，背部，后面"},{en:"background",cn:"背景"},{en:"bad",cn:"坏的，糟糕的"},{en:"bag",cn:"书包，袋子"},
+  {en:"bake",cn:"烘烤，烘焙"},{en:"ball",cn:"球，舞会"},{en:"balloon",cn:"气球"},{en:"banana",cn:"香蕉"},{en:"band",cn:"乐队，带子"},
+  {en:"bank",cn:"银行，岸"},{en:"baseball",cn:"棒球"},{en:"basic",cn:"基本的，基础的"},{en:"basket",cn:"篮子"},{en:"basketball",cn:"篮球"},
+  {en:"bathroom",cn:"浴室，卫生间"},{en:"beach",cn:"海滩，沙滩"},{en:"bear",cn:"熊，忍受"},{en:"beat",cn:"打败，跳动"},{en:"beautiful",cn:"美丽的，漂亮的"},
+  {en:"because",cn:"因为"},{en:"become",cn:"变成，成为"},{en:"bed",cn:"床"},{en:"bedroom",cn:"卧室"},{en:"beef",cn:"牛肉"},
+  // C (30)
+  {en:"cake",cn:"蛋糕"},{en:"call",cn:"打电话，称呼，叫"},{en:"calm",cn:"平静的，镇静的"},{en:"camera",cn:"照相机"},{en:"camp",cn:"营地，露营"},
+  {en:"can",cn:"能，会，可以"},{en:"cancel",cn:"取消"},{en:"cancer",cn:"癌症"},{en:"candle",cn:"蜡烛"},{en:"candy",cn:"糖果"},
+  {en:"cap",cn:"帽子，盖子"},{en:"captain",cn:"船长，队长"},{en:"car",cn:"汽车"},{en:"card",cn:"卡片，名片"},{en:"care",cn:"关心，照顾，小心"},
+  {en:"careful",cn:"小心的，仔细的"},{en:"careless",cn:"粗心的"},{en:"carry",cn:"携带，搬运"},{en:"cartoon",cn:"卡通，动画片"},{en:"case",cn:"情况，案例，箱子"},
+  {en:"cash",cn:"现金"},{en:"cat",cn:"猫"},{en:"catch",cn:"抓住，赶上"},{en:"cause",cn:"原因，导致"},{en:"celebrate",cn:"庆祝"},
+  {en:"cent",cn:"美分"},{en:"center",cn:"中心，中央"},{en:"century",cn:"世纪"},{en:"certain",cn:"确定的，某个"},{en:"chair",cn:"椅子"},
+  // D (25)
+  {en:"dad",cn:"爸爸"},{en:"daily",cn:"日常的，每天"},{en:"dance",cn:"跳舞，舞蹈"},{en:"danger",cn:"危险"},{en:"dangerous",cn:"危险的"},
+  {en:"dark",cn:"黑暗的，深色的"},{en:"date",cn:"日期，约会"},{en:"daughter",cn:"女儿"},{en:"day",cn:"天，白天"},{en:"dead",cn:"死的"},
+  {en:"deal",cn:"处理，交易"},{en:"dear",cn:"亲爱的，昂贵的"},{en:"death",cn:"死亡"},{en:"decide",cn:"决定"},{en:"deep",cn:"深的，深深地"},
+  {en:"degree",cn:"程度，度数，学位"},{en:"delicious",cn:"美味的"},{en:"deliver",cn:"递送，交付"},{en:"depend",cn:"依靠，取决于"},{en:"describe",cn:"描述，描写"},
+  {en:"desert",cn:"沙漠"},{en:"design",cn:"设计"},{en:"desk",cn:"书桌"},{en:"develop",cn:"发展，开发，养成"},{en:"dialogue",cn:"对话"},
+  // E (20)
+  {en:"each",cn:"每个，各自"},{en:"eager",cn:"渴望的，热切的"},{en:"ear",cn:"耳朵"},{en:"early",cn:"早的，早期的"},{en:"earn",cn:"挣得，赚得"},
+  {en:"earth",cn:"地球，土地"},{en:"east",cn:"东方，东部"},{en:"easy",cn:"容易的，舒适的"},{en:"eat",cn:"吃"},{en:"education",cn:"教育"},
+  {en:"effect",cn:"影响，效果"},{en:"effort",cn:"努力"},{en:"egg",cn:"鸡蛋"},{en:"eight",cn:"八"},{en:"eighteen",cn:"十八"},
+  {en:"eighth",cn:"第八"},{en:"eighty",cn:"八十"},{en:"either",cn:"也，要么"},{en:"elder",cn:"年长的"},{en:"electric",cn:"电的，电动的"},
+  // F (25)
+  {en:"face",cn:"脸，面对"},{en:"fact",cn:"事实，实际"},{en:"factory",cn:"工厂"},{en:"fail",cn:"失败，不及格"},{en:"fair",cn:"公平的，集市"},
+  {en:"fall",cn:"落下，跌倒，秋天"},{en:"family",cn:"家庭，家人"},{en:"famous",cn:"著名的"},{en:"fan",cn:"风扇，迷，粉丝"},{en:"fancy",cn:"精致的，想象"},
+  {en:"fantastic",cn:"极好的，奇异的"},{en:"far",cn:"远的，遥远"},{en:"farm",cn:"农场"},{en:"farmer",cn:"农民"},{en:"fast",cn:"快的，迅速地"},
+  {en:"fat",cn:"胖的，脂肪"},{en:"father",cn:"父亲"},{en:"fault",cn:"缺点，错误"},{en:"favor",cn:"帮助，恩惠，赞成"},{en:"favorite",cn:"最喜欢的"},
+  {en:"fear",cn:"害怕，恐惧"},{en:"feather",cn:"羽毛"},{en:"feature",cn:"特征，特色"},{en:"February",cn:"二月"},{en:"feed",cn:"喂养，饲养"},
+  // G (20)
+  {en:"gain",cn:"获得，赢得"},{en:"game",cn:"游戏，比赛"},{en:"garden",cn:"花园"},{en:"gas",cn:"气体，汽油"},{en:"gate",cn:"大门"},
+  {en:"general",cn:"一般的，总的，将军"},{en:"gentle",cn:"温柔的，温和的"},{en:"gentleman",cn:"绅士，先生"},{en:"geography",cn:"地理"},{en:"get",cn:"得到，变得"},
+  {en:"gift",cn:"礼物，天赋"},{en:"girl",cn:"女孩"},{en:"give",cn:"给，给予"},{en:"glad",cn:"高兴的，乐意的"},{en:"glass",cn:"玻璃，玻璃杯"},
+  {en:"global",cn:"全球的，全世界的"},{en:"go",cn:"去，走"},{en:"goal",cn:"目标，进球"},{en:"god",cn:"上帝，神"},{en:"gold",cn:"黄金，金色的"},
+  // H (25)
+  {en:"habit",cn:"习惯"},{en:"hair",cn:"头发"},{en:"half",cn:"一半，半数"},{en:"hall",cn:"大厅，礼堂"},{en:"hand",cn:"手，交给"},
+  {en:"happen",cn:"发生"},{en:"happy",cn:"幸福的，快乐的"},{en:"hard",cn:"努力地，困难的，硬的"},{en:"hardly",cn:"几乎不"},{en:"harm",cn:"伤害，损害"},
+  {en:"hat",cn:"帽子"},{en:"hate",cn:"憎恨，讨厌"},{en:"have",cn:"有，吃，进行"},{en:"head",cn:"头，头脑"},{en:"headache",cn:"头痛"},
+  {en:"health",cn:"健康"},{en:"healthy",cn:"健康的"},{en:"hear",cn:"听见，听说"},{en:"heart",cn:"心脏，内心"},{en:"heat",cn:"热，加热"},
+  {en:"heaven",cn:"天堂，天空"},{en:"heavy",cn:"重的，沉重的"},{en:"height",cn:"高度，身高"},{en:"help",cn:"帮助，帮忙"},{en:"helpful",cn:"有帮助的"},
+  // I (20)
+  {en:"ice",cn:"冰"},{en:"idea",cn:"主意，想法"},{en:"if",cn:"如果，是否"},{en:"ignore",cn:"忽视，不理"},{en:"ill",cn:"生病的"},
+  {en:"illness",cn:"疾病"},{en:"imagine",cn:"想象，设想"},{en:"immediately",cn:"立即，马上"},{en:"importance",cn:"重要性"},{en:"important",cn:"重要的"},
+  {en:"impossible",cn:"不可能的"},{en:"improve",cn:"改进，提高"},{en:"in",cn:"在...里面"},{en:"include",cn:"包括，包含"},{en:"income",cn:"收入"},
+  {en:"increase",cn:"增加，增长"},{en:"indeed",cn:"确实，实在"},{en:"independent",cn:"独立的"},{en:"indicate",cn:"表明，指示"},{en:"individual",cn:"个人的，个别的"},
+  // J (10)
+  {en:"job",cn:"工作，职业"},{en:"join",cn:"参加，加入"},{en:"joke",cn:"笑话，玩笑"},{en:"joy",cn:"欢乐，高兴"},{en:"judge",cn:"判断，裁判，法官"},
+  {en:"juice",cn:"果汁"},{en:"jump",cn:"跳，跳跃"},{en:"June",cn:"六月"},{en:"junior",cn:"初级的，年少的"},{en:"just",cn:"刚刚，只是，恰好"},
+  // K (10)
+  {en:"keen",cn:"热心的，渴望的"},{en:"keep",cn:"保持，保留，饲养"},{en:"key",cn:"钥匙，关键，答案"},{en:"keyboard",cn:"键盘"},{en:"kick",cn:"踢"},
+  {en:"kid",cn:"小孩，开玩笑"},{en:"kill",cn:"杀死，消磨"},{en:"kilo",cn:"千克，公斤"},{en:"kind",cn:"种类，善良的"},{en:"king",cn:"国王"},
+  // L (25)
+  {en:"lab",cn:"实验室"},{en:"laboratory",cn:"实验室"},{en:"lack",cn:"缺乏，不足"},{en:"ladder",cn:"梯子"},{en:"lady",cn:"女士，夫人"},
+  {en:"lake",cn:"湖"},{en:"lamb",cn:"羔羊"},{en:"lamp",cn:"灯"},{en:"land",cn:"陆地，土地，登陆"},{en:"language",cn:"语言"},
+  {en:"large",cn:"大的，巨大的"},{en:"last",cn:"最后的，持续"},{en:"late",cn:"迟的，晚的"},{en:"lately",cn:"最近，近来"},{en:"latest",cn:"最新的，最近的"},
+  {en:"laugh",cn:"笑，笑声"},{en:"law",cn:"法律，法规"},{en:"lay",cn:"放，搁，下蛋"},{en:"lazy",cn:"懒惰的"},{en:"lead",cn:"领导，带领，领先"},
+  {en:"leader",cn:"领袖，领导人"},{en:"leaf",cn:"叶子"},{en:"league",cn:"联盟，社团"},{en:"learn",cn:"学习，学会"},{en:"least",cn:"最少，至少"},
+  // M (25)
+  {en:"machine",cn:"机器"},{en:"mad",cn:"发疯的，生气的"},{en:"magazine",cn:"杂志"},{en:"magic",cn:"魔法，有魔力的"},{en:"main",cn:"主要的"},
+  {en:"major",cn:"较大的，主要的，专业"},{en:"make",cn:"制造，使，让"},{en:"male",cn:"男性的，雄性"},{en:"man",cn:"男人，人类"},{en:"manage",cn:"管理，设法"},
+  {en:"manager",cn:"经理"},{en:"many",cn:"许多的"},{en:"map",cn:"地图"},{en:"march",cn:"三月，行军"},{en:"mark",cn:"标记，分数"},
+  {en:"market",cn:"市场，集市"},{en:"marriage",cn:"结婚，婚姻"},{en:"marry",cn:"结婚，嫁，娶"},{en:"master",cn:"主人，精通，硕士"},{en:"match",cn:"比赛，匹配，火柴"},
+  {en:"material",cn:"材料，原料"},{en:"math",cn:"数学"},{en:"matter",cn:"事情，物质，要紧"},{en:"maximum",cn:"最大量，最高的"},{en:"may",cn:"可能，可以，五月"},
+  // N (15)
+  {en:"name",cn:"名字，命名"},{en:"narrow",cn:"狭窄的"},{en:"nation",cn:"国家，民族"},{en:"national",cn:"国家的，民族的"},{en:"native",cn:"本地的，本地人"},
+  {en:"natural",cn:"自然的，天生的"},{en:"nature",cn:"自然，本性"},{en:"near",cn:"附近，接近"},{en:"nearby",cn:"附近的"},{en:"nearly",cn:"几乎，将近"},
+  {en:"neat",cn:"整洁的，熟练的"},{en:"necessary",cn:"必需的，必要的"},{en:"neck",cn:"脖子"},{en:"need",cn:"需要，必须"},{en:"needle",cn:"针"},
+  // O (15)
+  {en:"obey",cn:"服从，遵守"},{en:"object",cn:"物体，目标，反对"},{en:"obtain",cn:"获得，得到"},{en:"obvious",cn:"明显的"},{en:"occasion",cn:"场合，时机"},
+  {en:"occupy",cn:"占领，占据，使忙碌"},{en:"occur",cn:"发生，出现"},{en:"ocean",cn:"海洋"},{en:"o'clock",cn:"...点钟"},{en:"October",cn:"十月"},
+  {en:"of",cn:"...的"},{en:"off",cn:"离开，关掉"},{en:"offer",cn:"提供，提议"},{en:"office",cn:"办公室"},{en:"officer",cn:"军官，警官，官员"},
+  // P (25)
+  {en:"pace",cn:"步伐，速度"},{en:"pack",cn:"打包，包装"},{en:"package",cn:"包裹，包装"},{en:"page",cn:"页，页面"},{en:"pain",cn:"疼痛，痛苦"},
+  {en:"paint",cn:"油漆，绘画"},{en:"painting",cn:"油画，绘画"},{en:"pair",cn:"一对，一双"},{en:"palace",cn:"宫殿"},{en:"pale",cn:"苍白的，淡的"},
+  {en:"pan",cn:"平底锅"},{en:"panda",cn:"熊猫"},{en:"paper",cn:"纸，论文"},{en:"paragraph",cn:"段落"},{en:"pardon",cn:"原谅，请再说一遍"},
+  {en:"parent",cn:"父（母）亲"},{en:"park",cn:"公园，停车"},{en:"part",cn:"部分，角色"},{en:"particular",cn:"特别的，特定的"},{en:"partner",cn:"伙伴，搭档"},
+  {en:"party",cn:"聚会，党派"},{en:"pass",cn:"经过，通过，传递"},{en:"passage",cn:"段落，通道"},{en:"passenger",cn:"乘客，旅客"},{en:"passport",cn:"护照"},
+  // Q (8)
+  {en:"quality",cn:"质量，品质"},{en:"quantity",cn:"数量"},{en:"quarrel",cn:"争吵"},{en:"quarter",cn:"四分之一，一刻钟"},{en:"queen",cn:"女王，王后"},
+  {en:"question",cn:"问题，询问"},{en:"quick",cn:"快的，迅速的"},{en:"quiet",cn:"安静的，平静的"},
+  // R (25)
+  {en:"rabbit",cn:"兔子"},{en:"race",cn:"比赛，种族"},{en:"radio",cn:"收音机，无线电"},{en:"railway",cn:"铁路"},{en:"rain",cn:"雨，下雨"},
+  {en:"raise",cn:"举起，提高，筹集"},{en:"rapid",cn:"迅速的，快的"},{en:"rat",cn:"老鼠"},{en:"rather",cn:"相当，宁愿"},{en:"reach",cn:"到达，伸手"},
+  {en:"read",cn:"读，阅读"},{en:"ready",cn:"准备好的"},{en:"real",cn:"真的，真实的"},{en:"realize",cn:"认识到，实现"},{en:"really",cn:"真正地，确实"},
+  {en:"reason",cn:"理由，原因"},{en:"receive",cn:"收到，接待"},{en:"recent",cn:"最近的，近来的"},{en:"recognize",cn:"认出，承认"},{en:"record",cn:"记录，录音"},
+  {en:"red",cn:"红色的"},{en:"reduce",cn:"减少，缩小"},{en:"refer",cn:"提到，参考"},{en:"refuse",cn:"拒绝"},{en:"regard",cn:"把...看作，尊重"},
+  // S (30)
+  {en:"sad",cn:"悲伤的"},{en:"safe",cn:"安全的"},{en:"safety",cn:"安全"},{en:"sail",cn:"航行，帆"},{en:"salary",cn:"薪水"},
+  {en:"sale",cn:"出售，贱卖"},{en:"salt",cn:"盐"},{en:"same",cn:"同样的"},{en:"sample",cn:"样品，样本"},{en:"sand",cn:"沙，沙滩"},
+  {en:"save",cn:"救，节省，保存"},{en:"say",cn:"说"},{en:"scene",cn:"场景，风景"},{en:"school",cn:"学校"},{en:"science",cn:"科学"},
+  {en:"scientific",cn:"科学的"},{en:"scientist",cn:"科学家"},{en:"score",cn:"得分，分数"},{en:"screen",cn:"屏幕，屏风"},{en:"sea",cn:"海，海洋"},
+  {en:"search",cn:"搜索，搜寻"},{en:"season",cn:"季节"},{en:"seat",cn:"座位，使坐下"},{en:"second",cn:"第二，秒"},{en:"secret",cn:"秘密，秘诀"},
+  {en:"secretary",cn:"秘书"},{en:"see",cn:"看见，明白"},{en:"seek",cn:"寻找，寻求"},{en:"seem",cn:"似乎，好像"},{en:"select",cn:"选择，挑选"},
+  // T (25)
+  {en:"table",cn:"桌子，表格"},{en:"tail",cn:"尾巴"},{en:"take",cn:"拿，带走，花费"},{en:"tale",cn:"故事，传说"},{en:"talk",cn:"谈话，交谈"},
+  {en:"tall",cn:"高的"},{en:"tape",cn:"磁带，胶带"},{en:"task",cn:"任务，工作"},{en:"taste",cn:"味道，品尝"},{en:"tax",cn:"税，税款"},
+  {en:"taxi",cn:"出租车"},{en:"tea",cn:"茶，茶叶"},{en:"teach",cn:"教，教书"},{en:"teacher",cn:"教师"},{en:"team",cn:"队，团队"},
+  {en:"technical",cn:"技术的，工艺的"},{en:"technique",cn:"技术，技巧"},{en:"technology",cn:"技术，科技"},{en:"teenager",cn:"青少年"},{en:"telephone",cn:"电话"},
+  {en:"television",cn:"电视"},{en:"tell",cn:"告诉，讲述"},{en:"temperature",cn:"温度"},{en:"ten",cn:"十"},{en:"tend",cn:"趋向，照顾"},
+  // U (12)
+  {en:"ugly",cn:"丑陋的"},{en:"umbrella",cn:"伞"},{en:"unable",cn:"不能的"},{en:"uncle",cn:"叔，伯，舅"},{en:"under",cn:"在...下面"},
+  {en:"understand",cn:"理解，明白"},{en:"uniform",cn:"制服"},{en:"union",cn:"联合，联盟，工会"},{en:"unit",cn:"单元，单位"},{en:"unite",cn:"联合，团结"},
+  {en:"university",cn:"大学"},{en:"unless",cn:"除非，如果不"},
+  // V (12)
+  {en:"vacation",cn:"假期，休假"},{en:"valley",cn:"山谷，溪谷"},{en:"valuable",cn:"有价值的，贵重的"},{en:"value",cn:"价值，重视"},{en:"variety",cn:"多样，种类"},
+  {en:"various",cn:"各种各样的"},{en:"vegetable",cn:"蔬菜"},{en:"vehicle",cn:"车辆，交通工具"},{en:"very",cn:"很，非常"},{en:"victory",cn:"胜利"},
+  {en:"view",cn:"观点，风景，观看"},{en:"village",cn:"村庄，乡村"},
+  // W (20)
+  {en:"wait",cn:"等待，等候"},{en:"wake",cn:"醒来，唤醒"},{en:"walk",cn:"步行，散步"},{en:"wall",cn:"墙"},{en:"war",cn:"战争"},
+  {en:"warm",cn:"温暖的，暖和的"},{en:"warn",cn:"警告，告诫"},{en:"wash",cn:"洗，洗涤"},{en:"waste",cn:"浪费，废物"},{en:"watch",cn:"观看，手表"},
+  {en:"water",cn:"水"},{en:"wave",cn:"波浪，挥手"},{en:"way",cn:"道路，方法"},{en:"weak",cn:"虚弱的，差的"},{en:"wealth",cn:"财富，财产"},
+  {en:"wear",cn:"穿，戴，磨损"},{en:"weather",cn:"天气"},{en:"website",cn:"网站"},{en:"week",cn:"星期，周"},{en:"weekend",cn:"周末"},
+  // X,Y,Z (8)
+  {en:"X-ray",cn:"X光，X射线"},{en:"yard",cn:"院子，场地"},{en:"year",cn:"年，年份"},{en:"yellow",cn:"黄色的"},{en:"yes",cn:"是，是的"},
+  {en:"yesterday",cn:"昨天"},{en:"yet",cn:"还，仍然"},{en:"young",cn:"年轻的"}
+];
+
+// ==================== 存储管理 ====================
+const KEYS = {
+  FAMILIAR: 'familiarWords_v2',   // 真正掌握（点击2次熟悉）
+  COUNT: 'familiarCount',         // 熟悉点击次数 {word: count}
+  UNFAMILIAR: 'unfamiliarWords',  // 标记不熟悉的
+  FILTER: 'currentFilter'         // 当前筛选模式
+};
+
+let words = [];
+let currentIndex = 0;
+let voices = [];
+
+// 兼容旧版本数据迁移
+function migrateOldData() {
+  const old = localStorage.getItem('familiarWords');
+  const current = localStorage.getItem(KEYS.FAMILIAR);
+  if (old && !current) {
+    try {
+      localStorage.setItem(KEYS.FAMILIAR, old);
+    } catch(e){}
+  }
+}
+
+function getFamiliarWords() {
+  const s = localStorage.getItem(KEYS.FAMILIAR);
+  return s ? JSON.parse(s) : [];
+}
+function saveFamiliarWords(arr) {
+  localStorage.setItem(KEYS.FAMILIAR, JSON.stringify(arr));
+}
+function getFamiliarCount() {
+  const s = localStorage.getItem(KEYS.COUNT);
+  return s ? JSON.parse(s) : {};
+}
+function saveFamiliarCount(obj) {
+  localStorage.setItem(KEYS.COUNT, JSON.stringify(obj));
+}
+function getUnfamiliarWords() {
+  const s = localStorage.getItem(KEYS.UNFAMILIAR);
+  return s ? JSON.parse(s) : [];
+}
+function saveUnfamiliarWords(arr) {
+  localStorage.setItem(KEYS.UNFAMILIAR, JSON.stringify(arr));
+}
+function getCurrentFilter() {
+  return localStorage.getItem(KEYS.FILTER) || 'unlearned';
+}
+function saveCurrentFilter(f) {
+  localStorage.setItem(KEYS.FILTER, f);
+}
+
+// ==================== 语音加载 ====================
+function loadVoices(){
+  voices = window.speechSynthesis.getVoices();
+}
+loadVoices();
+if (speechSynthesis.onvoiceschanged !== undefined){
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+
+// ==================== 核心逻辑 ====================
+function initWords() {
+  const filter = getCurrentFilter();
+  const familiarList = getFamiliarWords();
+  const unfamiliarList = getUnfamiliarWords();
+  
+  // 根据筛选生成列表
+  switch(filter) {
+    case 'all':
+      words = [...allWords];
+      break;
+    case 'familiar':
+      words = allWords.filter(w => familiarList.includes(w.en));
+      break;
+    case 'unfamiliar':
+      words = allWords.filter(w => unfamiliarList.includes(w.en));
+      break;
+    case 'unlearned':
+    default:
+      words = allWords.filter(w => !familiarList.includes(w.en));
+      break;
+  }
+  
+  if (words.length === 0) {
+    showEmptyState(filter);
+    return false;
+  }
+  
+  words.sort(() => Math.random() - 0.5);
+  currentIndex = 0;
+  return true;
+}
+
+function showEmptyState(filter) {
+  const map = {
+    unlearned: ["🎉 恭喜！", "所有单词都已掌握！", "点击不熟悉按钮可重置全部进度"],
+    familiar: ["📭 无数据", "还没有标记为熟悉的单词", "去未学习列表积累吧"],
+    unfamiliar: ["📭 无数据", "没有标记为不熟悉的单词", "学习时点击不熟悉即可收录"],
+    all: ["📭 无数据", "单词库为空", ""]
+  };
+  const t = map[filter] || map.all;
+  document.getElementById("word").innerText = t[0];
+  document.getElementById("mean").innerText = t[1];
+  document.getElementById("status").innerText = t[2];
+  document.getElementById("progress").innerText = "";
+}
+
+function show() {
+  if (words.length === 0) return;
+  const w = words[currentIndex];
+  document.getElementById("word").innerText = w.en;
+  document.getElementById("mean").innerText = w.cn;
+  document.getElementById("status").innerText = "";
+  updateProgress();
+  setTimeout(() => play(), 300);
+}
+
+function updateProgress() {
+  const familiar = getFamiliarWords().length;
+  const unfamiliar = getUnfamiliarWords().length;
+  const total = allWords.length;
+  const f = getCurrentFilter();
+  let text = "";
+  
+  if (f === 'unlearned') {
+    text = `已掌握 ${familiar}/${total} | 剩余 ${words.length} 个`;
+  } else if (f === 'all') {
+    text = `总计 ${total} | 已掌握 ${familiar} | 不熟 ${unfamiliar}`;
+  } else if (f === 'familiar') {
+    text = `已掌握 ${words.length} 个`;
+  } else if (f === 'unfamiliar') {
+    text = `标记不熟 ${words.length} 个`;
+  }
+  document.getElementById("progress").innerText = text;
+}
+
+// ==================== 发音（有道在线 + 本地后备） ====================
+function play() {
+  if (words.length === 0) return;
+  const word = words[currentIndex].en;
+  document.getElementById("status").innerText = "🔊 加载发音...";
+  tryOnlineTTS(word, 2); // 2=美式，1=英式
+}
+
+function tryOnlineTTS(word, type) {
+  const audio = new Audio();
+  // 有道词典开放语音接口（标准真人发音）
+  audio.src = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=${type}`;
+  
+  audio.oncanplay = () => {
+    document.getElementById("status").innerText = "🔊 播放中...";
+  };
+  audio.onended = () => {
+    document.getElementById("status").innerText = "";
+  };
+  audio.onerror = () => {
+    if (type === 2) {
+      tryOnlineTTS(word, 1); // 美式失败试英式
+    } else {
+      document.getElementById("status").innerText = "在线发音失败，尝试本地...";
+      fallbackPlay();
+    }
+  };
+  
+  const p = audio.play();
+  if (p !== undefined) {
+    p.catch(() => fallbackPlay());
+  }
+}
+
+function fallbackPlay() {
+  if (!window.speechSynthesis) {
+    document.getElementById("status").innerText = "❌ 无法播放发音";
+    return;
+  }
+  window.speechSynthesis.cancel();
+  
+  const word = words[currentIndex].en;
+  let u = new SpeechSynthesisUtterance(word);
+  u.lang = 'en-US';
+  u.rate = 0.9;
+  u.pitch = 1;
+  
+  if (voices.length > 0) {
+    const v = voices.find(x => x.lang && x.lang.startsWith('en'));
+    if (v) u.voice = v;
+  }
+  
+  u.onstart = () => document.getElementById("status").innerText = "🔊 本地朗读中...";
+  u.onend = () => document.getElementById("status").innerText = "";
+  u.onerror = () => document.getElementById("status").innerText = "朗读失败";
+  
+  window.speechSynthesis.speak(u);
+}
+
+// ==================== 按钮交互 ====================
+function markFamiliar() {
+  if (words.length === 0) {
+    handleEmptyClick();
+    return;
+  }
+  
+  const word = words[currentIndex].en;
+  const filter = getCurrentFilter();
+  
+  // 增加熟悉次数
+  const countMap = getFamiliarCount();
+  const newCount = (countMap[word] || 0) + 1;
+  countMap[word] = newCount;
+  saveFamiliarCount(countMap);
+  
+  if (newCount >= 2) {
+    // 真正掌握
+    const familiarList = getFamiliarWords();
+    if (!familiarList.includes(word)) {
+      familiarList.push(word);
+      saveFamiliarWords(familiarList);
+    }
+    // 从不熟悉列表移除（如果存在）
+    removeFromUnfamiliar(word);
+    
+    document.getElementById("status").innerText = `✓ 「${word}」已熟练掌握`;
+    
+    // 在未学习/不熟悉 模式下，掌握后从当前列表移除
+    if (filter === 'unlearned' || filter === 'unfamiliar') {
+      words.splice(currentIndex, 1);
+      if (currentIndex >= words.length) currentIndex = 0;
+    } else {
+      currentIndex = (currentIndex + 1) % words.length;
+    }
+  } else {
+    document.getElementById("status").innerText = `✓ 「${word}」熟悉进度 ${newCount}/2`;
+    currentIndex = (currentIndex + 1) % words.length;
+  }
+  
+  setTimeout(() => show(), 500);
+}
+
+function markUnfamiliar() {
+  if (words.length === 0) {
+    handleEmptyClick();
+    return;
+  }
+  
+  const word = words[currentIndex].en;
+  const filter = getCurrentFilter();
+  
+  // 加入不熟悉列表
+  const unfamiliarList = getUnfamiliarWords();
+  if (!unfamiliarList.includes(word)) {
+    unfamiliarList.push(word);
+    saveUnfamiliarWords(unfamiliarList);
+  }
+  
+  // 从掌握列表降级移除
+  const familiarList = getFamiliarWords();
+  const idx = familiarList.indexOf(word);
+  if (idx > -1) {
+    familiarList.splice(idx, 1);
+    saveFamiliarWords(familiarList);
+  }
+  
+  // 重置熟悉次数
+  const countMap = getFamiliarCount();
+  if (countMap[word]) {
+    delete countMap[word];
+    saveFamiliarCount(countMap);
+  }
+  
+  document.getElementById("status").innerText = `✗ 「${word}」已标记为不熟悉`;
+  
+  // 在熟悉模式下，降级后从当前列表移除
+  if (filter === 'familiar') {
+    words.splice(currentIndex, 1);
+    if (currentIndex >= words.length) currentIndex = 0;
+  } else {
+    currentIndex = (currentIndex + 1) % words.length;
+  }
+  
+  setTimeout(() => show(), 500);
+}
+
+function next() {
+  if (words.length === 0) {
+    handleEmptyClick();
+    return;
+  }
+  currentIndex = (currentIndex + 1) % words.length;
+  show();
+}
+
+function removeFromUnfamiliar(word) {
+  const list = getUnfamiliarWords();
+  const idx = list.indexOf(word);
+  if (idx > -1) {
+    list.splice(idx, 1);
+    saveUnfamiliarWords(list);
+  }
+}
+
+function handleEmptyClick() {
+  const filter = getCurrentFilter();
+  if (filter === 'unlearned') {
+    if (confirm("🎉 全部单词已掌握！是否重置所有进度？")) {
+      resetAll();
+    }
+  }
+}
+
+function resetAll() {
+  localStorage.removeItem(KEYS.FAMILIAR);
+  localStorage.removeItem(KEYS.COUNT);
+  localStorage.removeItem(KEYS.UNFAMILIAR);
+  saveCurrentFilter('unlearned');
+  document.getElementById('filterSelect').value = 'unlearned';
+  initWords();
+  show();
+}
+
+function changeFilter(value) {
+  saveCurrentFilter(value);
+  initWords();
+  show();
+}
+
+// ==================== 启动 ====================
+migrateOldData();
+document.getElementById('filterSelect').value = getCurrentFilter();
+if (initWords()) {
+  show();
+}
+</script>
+</body>
+</html>
