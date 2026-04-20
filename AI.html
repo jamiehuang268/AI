@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI项目列表</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
+        .header { background: #4a90d9; color: #fff; padding: 20px; text-align: center; font-size: 22px; }
+        .back { position: fixed; top: 10px; left: 10px; background: rgba(255,255,255,.3); color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; z-index: 999; }
+        .loading { text-align: center; padding: 60px; color: #888; font-size: 16px; }
+        .list { max-width: 600px; margin: 30px auto; }
+        .item { background: #fff; margin: 12px 0; padding: 18px 24px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; font-size: 17px; transition: .2s; }
+        .item:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+        .error { text-align: center; padding: 60px; color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">AI 项目列表</div>
+        <div class="loading" id="loading">正在从金山文档获取数据...</div>
+        <div class="list" id="list"></div>
+        <div class="error" id="error" style="display:none"></div>
+    </div>
+
+    <script>
+        const WPS_HOST = "https://www.kdocs.cn";
+        const WPS_TOKEN = "2hoG7YUtulWlqPDaxn6Mm9";
+        const WPS_API = "/api/v3/ide/file/cs8hw42t5wQH/script/V2-6NZQqpzLrxjZCALOBus1an/sync_task";
+
+        let projects = [];
+
+        async function fetchData() {
+            try {
+                const res = await fetch(WPS_HOST + WPS_API, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "AirScript-Token": WPS_TOKEN
+                    },
+                    body: JSON.stringify({ Context: { argv: {} } })
+                });
+                const data = await res.json();
+                
+                // 响应中data字段可能包含实际内容
+                let rsp = data.data || data;
+                if (typeof rsp === "string") rsp = JSON.parse(rsp);
+                
+                let records = rsp.records || (rsp.data && rsp.data.records) || [];
+                
+                document.getElementById("loading").style.display = "none";
+                
+                if (!records.length) {
+                    document.getElementById("error").style.display = "block";
+                    document.getElementById("error").textContent = "未获取到项目数据，返回内容：" + JSON.stringify(data).substring(0, 500);
+                    return;
+                }
+
+                records.forEach(rec => {
+                    const fields = rec.fields || {};
+                    const name = fields["项目名字"] || "未命名项目";
+                    // html代码字段可能是对象，summary中含有html片段；也可能直接是字符串
+                    let htmlCode = "";
+                    const h = fields["html代码"];
+                    if (typeof h === "string") htmlCode = h;
+                    else if (h && h.summary) htmlCode = h.summary;
+                    // summary可能被截断，尝试用完整内容
+                    if (h && h.content) htmlCode = h.content;
+                    
+                    projects.push({ name, htmlCode });
+                });
+
+                renderList();
+            } catch (e) {
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("error").style.display = "block";
+                document.getElementById("error").textContent = "获取数据失败：" + e.message;
+            }
+        }
+
+        function renderList() {
+            const list = document.getElementById("list");
+            list.innerHTML = "";
+            projects.forEach((p, i) => {
+                const div = document.createElement("div");
+                div.className = "item";
+                div.textContent = p.name;
+                div.onclick = () => openProject(i);
+                list.appendChild(div);
+            });
+        }
+
+        function openProject(index) {
+            const p = projects[index];
+            // 用整个页面展示该项目的html代码
+            document.open();
+            document.write(p.htmlCode);
+            document.close();
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
